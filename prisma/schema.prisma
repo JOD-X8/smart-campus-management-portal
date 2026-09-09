@@ -1,0 +1,363 @@
+// Prisma Schema for Smart Campus Management Portal
+// Supports PostgreSQL (and SQLite configurable via provider)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  FACULTY
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum AssessmentType {
+  ASSIGNMENT
+  INTERNAL
+  QUIZ
+  MIDTERM
+  FINAL_EXAM
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  GRADED
+  LATE
+}
+
+enum TargetAudience {
+  ALL
+  FACULTY
+  STUDENT
+  DEPARTMENT
+}
+
+enum Priority {
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ALERT
+}
+
+model User {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  passwordHash String
+  role         Role           @default(STUDENT)
+  firstName    String
+  lastName     String
+  avatarUrl    String?
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  studentProfile    Student?
+  facultyProfile    Faculty?
+  announcements     Announcement[]
+  notifications     Notification[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  hodName     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  students       Student[]
+  faculty        Faculty[]
+  courses        Course[]
+  timetableSlots TimetableSlot[]
+  announcements  Announcement[]
+
+  @@index([code])
+}
+
+model Faculty {
+  id           String     @id @default(uuid())
+  facultyId    String     @unique
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  designation  String
+  qualification String
+  phone        String?
+  joiningDate  DateTime   @default(now())
+  status       String     @default("ACTIVE")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  courses            Course[]
+  attendanceSessions AttendanceSession[]
+  assessments        Assessment[]
+  assignments        Assignment[]
+  timetableSlots     TimetableSlot[]
+
+  @@index([facultyId])
+  @@index([departmentId])
+}
+
+model Student {
+  id            String     @id @default(uuid())
+  studentId     String     @unique
+  userId        String     @unique
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id])
+  program       String
+  year          Int        @default(1)
+  semester      Int        @default(1)
+  section       String     @default("A")
+  admissionYear Int
+  dob           DateTime?
+  gender        String?
+  phone         String?
+  status        String     @default("ACTIVE")
+  cgpa          Float      @default(0.0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  enrollments           Enrollment[]
+  attendanceRecords     AttendanceRecord[]
+  grades                Grade[]
+  assignmentSubmissions AssignmentSubmission[]
+
+  @@index([studentId])
+  @@index([departmentId])
+  @@index([semester])
+  @@index([year])
+}
+
+model Course {
+  id           String     @id @default(uuid())
+  code         String     @unique
+  name         String
+  description  String?
+  credits      Int        @default(3)
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  semester     Int
+  academicYear String
+  facultyId    String?
+  faculty      Faculty?   @relation(fields: [facultyId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  enrollments        Enrollment[]
+  attendanceSessions AttendanceSession[]
+  assessments        Assessment[]
+  assignments        Assignment[]
+  timetableSlots     TimetableSlot[]
+
+  @@index([code])
+  @@index([departmentId])
+  @@index([semester])
+}
+
+model Enrollment {
+  id           String   @id @default(uuid())
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  semester     Int
+  academicYear String
+  status       String   @default("ENROLLED")
+  enrolledAt   DateTime @default(now())
+
+  @@unique([studentId, courseId])
+  @@index([studentId])
+  @@index([courseId])
+}
+
+model AttendanceSession {
+  id        String   @id @default(uuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  facultyId String
+  faculty   Faculty  @relation(fields: [facultyId], references: [id])
+  date      DateTime
+  slot      String
+  topic     String?
+  createdAt DateTime @default(now())
+
+  records AttendanceRecord[]
+
+  @@index([courseId])
+  @@index([date])
+}
+
+model AttendanceRecord {
+  id        String            @id @default(uuid())
+  sessionId String
+  session   AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status    AttendanceStatus  @default(PRESENT)
+  remarks   String?
+
+  @@unique([sessionId, studentId])
+  @@index([sessionId])
+  @@index([studentId])
+}
+
+model Assessment {
+  id          String         @id @default(uuid())
+  courseId    String
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  facultyId   String
+  faculty     Faculty        @relation(fields: [facultyId], references: [id])
+  title       String
+  type        AssessmentType @default(INTERNAL)
+  maxMarks    Float          @default(100)
+  weightage   Float          @default(20)
+  date        DateTime?
+  isPublished Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  grades Grade[]
+
+  @@index([courseId])
+}
+
+model Grade {
+  id            String     @id @default(uuid())
+  assessmentId  String
+  assessment    Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  marksObtained Float
+  feedback      String?
+  gradedAt      DateTime   @default(now())
+
+  @@unique([assessmentId, studentId])
+  @@index([assessmentId])
+  @@index([studentId])
+}
+
+model TimetableSlot {
+  id           String     @id @default(uuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  courseId     String
+  course       Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  facultyId    String
+  faculty      Faculty    @relation(fields: [facultyId], references: [id])
+  dayOfWeek    DayOfWeek
+  startTime    String
+  endTime      String
+  room         String
+  semester     Int
+  section      String     @default("A")
+  createdAt    DateTime   @default(now())
+
+  @@index([departmentId, semester, section])
+  @@index([facultyId])
+  @@index([dayOfWeek])
+}
+
+model Assignment {
+  id            String   @id @default(uuid())
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  facultyId     String
+  faculty       Faculty  @relation(fields: [facultyId], references: [id])
+  title         String
+  description   String
+  dueDate       DateTime
+  maxMarks      Float    @default(100)
+  attachmentUrl String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  submissions AssignmentSubmission[]
+
+  @@index([courseId])
+  @@index([dueDate])
+}
+
+model AssignmentSubmission {
+  id           String           @id @default(uuid())
+  assignmentId String
+  assignment   Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  content      String?
+  fileUrl      String?
+  submittedAt  DateTime         @default(now())
+  status       SubmissionStatus @default(SUBMITTED)
+  marks        Float?
+  feedback     String?
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
+}
+
+model Announcement {
+  id             String         @id @default(uuid())
+  title          String
+  content        String
+  authorId       String
+  author         User           @relation(fields: [authorId], references: [id])
+  targetAudience TargetAudience @default(ALL)
+  departmentId   String?
+  department     Department?    @relation(fields: [departmentId], references: [id])
+  priority       Priority       @default(NORMAL)
+  expiresAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([targetAudience])
+  @@index([departmentId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
