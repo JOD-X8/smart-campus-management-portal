@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import { getSessionFromRequest } from "@/lib/auth";
 import { apiError, apiSuccess, apiUnauthorized } from "@/lib/api-response";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);

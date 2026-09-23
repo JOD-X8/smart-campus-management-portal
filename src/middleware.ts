@@ -86,13 +86,21 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL(fallback, req.url));
     }
 
-    if (pathname.startsWith("/faculty") && user.role !== "FACULTY" && user.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/student", req.url));
-    }
+    if (
+  (pathname === "/faculty" || pathname.startsWith("/faculty/")) &&
+  user.role !== "FACULTY" &&
+  user.role !== "ADMIN"
+) {
+  return NextResponse.redirect(new URL("/student", req.url));
+}
 
-    if (pathname.startsWith("/student") && user.role !== "STUDENT" && user.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/faculty", req.url));
-    }
+if (
+  (pathname === "/student" || pathname.startsWith("/student/")) &&
+  user.role !== "STUDENT" &&
+  user.role !== "ADMIN"
+) {
+  return NextResponse.redirect(new URL("/faculty", req.url));
+}
   }
 
   return NextResponse.next();

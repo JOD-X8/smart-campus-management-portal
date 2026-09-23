@@ -158,7 +158,13 @@ export default function AiAssistantPage() {
                         : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700 whitespace-pre-line"
                     }`}
                   >
-                    {m.text}
+                    {m.text.split(/(\*\*.*?\*\*)/g).map((part, index) =>
+  part.startsWith("**") && part.endsWith("**") ? (
+    <strong key={index}>{part.slice(2, -2)}</strong>
+  ) : (
+    part
+  )
+)}
                   </div>
 
                   {m.suggestions && m.suggestions.length > 0 && (

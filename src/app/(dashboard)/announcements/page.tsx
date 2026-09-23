@@ -35,7 +35,7 @@ export default function AnnouncementsPage() {
 
   const [activeTab, setActiveTab] = useState("ALL");
   const { data, isLoading } = useGetAnnouncementsQuery({
-    targetAudience: activeTab !== "ALL" ? activeTab : undefined,
+    targetAudience: activeTab,
   });
 
   const [createAnnouncement, { isLoading: isCreating }] = useCreateAnnouncementMutation();

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   useGetCoursesQuery,
@@ -30,7 +30,7 @@ import {
   BookOpen,
 } from "lucide-react";
 
-export default function AttendancePage() {
+function AttendanceContent() {
   const searchParams = useSearchParams();
   const initialCourseId = searchParams.get("courseId") || "";
   const { user } = useAppSelector((state) => state.auth);
@@ -392,5 +392,13 @@ export default function AttendancePage() {
         </form>
       </Card>
     </div>
+  );
+}
+
+export default function AttendancePage() {
+  return (
+    <Suspense fallback={<TableSkeleton rows={6} columns={5} />}>
+      <AttendanceContent />
+    </Suspense>
   );
 }

@@ -87,3 +87,37 @@ test("isAuthorizedRole grants and restricts access appropriately", () => {
   assert.strictEqual(isAuthorizedRole("STUDENT", ["STUDENT", "FACULTY", "ADMIN"]), true);
   assert.strictEqual(isAuthorizedRole(undefined, ["ADMIN"]), false);
 });
+
+// 4. Timetable slot overlap detection logic
+function hasTimeClash(slot1, slot2) {
+  if (slot1.day !== slot2.day) return false;
+  // Overlap if slot1.start < slot2.end && slot1.end > slot2.start
+  return slot1.start < slot2.end && slot1.end > slot2.start;
+}
+
+test("hasTimeClash accurately detects schedule overlap", () => {
+  const s1 = { day: "MONDAY", start: "09:00", end: "10:00" };
+  const s2 = { day: "MONDAY", start: "09:30", end: "10:30" };
+  const s3 = { day: "MONDAY", start: "10:00", end: "11:00" };
+  const s4 = { day: "TUESDAY", start: "09:00", end: "10:00" };
+
+  assert.strictEqual(hasTimeClash(s1, s2), true); // overlap
+  assert.strictEqual(hasTimeClash(s1, s3), false); // adjacent, no overlap
+  assert.strictEqual(hasTimeClash(s1, s4), false); // different days
+});
+
+// 5. Audience targeting logic
+function isAudiencePermitted(announcementAudience, userRole) {
+  if (announcementAudience === "ALL") return true;
+  if (announcementAudience === "STUDENT" && userRole === "STUDENT") return true;
+  if (announcementAudience === "FACULTY" && userRole === "FACULTY") return true;
+  if (userRole === "ADMIN") return true;
+  return false;
+}
+
+test("isAudiencePermitted verifies role visibility", () => {
+  assert.strictEqual(isAudiencePermitted("ALL", "STUDENT"), true);
+  assert.strictEqual(isAudiencePermitted("STUDENT", "STUDENT"), true);
+  assert.strictEqual(isAudiencePermitted("FACULTY", "STUDENT"), false);
+  assert.strictEqual(isAudiencePermitted("FACULTY", "ADMIN"), true);
+});
