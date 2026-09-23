@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "smart-campus-super-secret-key-prod-2024"
+ process.env.JWT_SECRET || "smart-campus-management-super-secret-key-prod-2024"
 );
 
 const AUTH_COOKIE = "smart_campus_session";
