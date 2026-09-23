@@ -36,3 +36,5 @@ next-env.d.ts
 
 # local postgres database cluster
 .postgres_data/
+
+smart_campus_data.sql
