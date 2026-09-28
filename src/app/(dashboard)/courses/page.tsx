@@ -50,11 +50,10 @@ export default function CoursesPage() {
 
   const { data: deptData } = useGetDepartmentsQuery(undefined);
   const { data: facData } = useGetFacultyListQuery(undefined);
-  const { data: stuData } = useGetStudentsQuery({ limit: "50" });
 
   const departments = deptData?.data || [];
   const facultyMembers = facData?.data || [];
-  const students = stuData?.data || [];
+  
 
   const [createCourse, { isLoading: isCreating }] = useCreateCourseMutation();
   const [updateCourse, { isLoading: isUpdating }] = useUpdateCourseMutation();
@@ -68,6 +67,20 @@ export default function CoursesPage() {
   // Enrollment modal
   const [enrollingCourse, setEnrollingCourse] = useState<any>(null);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [enrollmentDepartmentId, setEnrollmentDepartmentId] = useState("ALL");
+  const enrolledStudentIds = new Set(
+  enrollingCourse?.enrollments?.map((e: any) => e.studentId) || []
+  );
+  
+  const { data: stuData } = useGetStudentsQuery(
+  enrollingCourse
+    ? {
+        departmentId: enrollmentDepartmentId,
+        all: "true",
+      }
+    : { limit: "1" }
+);
+  const students = stuData?.data || [];
 
   const [formData, setFormData] = useState({
     code: "",
@@ -149,6 +162,7 @@ export default function CoursesPage() {
   const handleOpenEnroll = (course: any) => {
     setEnrollingCourse(course);
     setSelectedStudentIds([]);
+    setEnrollmentDepartmentId("ALL");
   };
 
   const handleToggleStudentSelection = (sId: string) => {
@@ -419,24 +433,45 @@ export default function CoursesPage() {
         maxWidth="lg"
       >
         <div className="space-y-4">
+        <Select
+              label="Department"
+              value={enrollmentDepartmentId}
+              onChange={(e) => {
+              setEnrollmentDepartmentId(e.target.value);
+              setSelectedStudentIds([]);
+          }}
+           options={[
+            { value: "ALL", label: "All Departments" },
+            ...departments.map((d: any) => ({
+              value: d.id,
+           label: `${d.code} - ${d.name}`,
+           })),
+          ]}
+        />
           <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border rounded-xl p-2">
             {students.map((s: any) => {
               const isSelected = selectedStudentIds.includes(s.id);
+              const isAlreadyEnrolled = enrolledStudentIds.has(s.id);
               return (
                 <div
                   key={s.id}
-                  onClick={() => handleToggleStudentSelection(s.id)}
-                  className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors ${
-                    isSelected ? "bg-indigo-50 dark:bg-indigo-950/40" : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                  onClick={() => !isAlreadyEnrolled && handleToggleStudentSelection(s.id)}
+                  className={`flex items-center justify-between p-2.5 rounded-lg transition-colors ${
+                    isAlreadyEnrolled
+                      ? "bg-slate-100 dark:bg-slate-800 opacity-50 cursor-not-allowed"
+                      : isSelected
+                        ? "bg-indigo-50 dark:bg-indigo-950/40 cursor-pointer"
+                        : "hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => {}} // Handled by div click
-                      className="h-4 w-4 rounded text-indigo-600 pointer-events-none"
-                    />
+                      disabled={isAlreadyEnrolled}
+                      onChange={() => {}}
+                      className="h-4 w-4 rounded text-indigo-600 pointer-events-none disabled:opacity-50"
+                  />
                     <div>
                       <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                         {s.user.firstName} {s.user.lastName} ({s.studentId})

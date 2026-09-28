@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
     const semester = searchParams.get("semester");
     const status = searchParams.get("status");
     const page = parseInt(searchParams.get("page") || "1", 10);
+    const all = searchParams.get("all") === "true";
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const skip = (page - 1) * limit;
 
@@ -52,8 +53,7 @@ export async function GET(req: NextRequest) {
       prisma.student.count({ where }),
       prisma.student.findMany({
         where,
-        skip,
-        take: limit,
+        ...(all ? {} : { skip, take: limit }),
         orderBy: { studentId: "asc" },
         include: {
           user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true, isActive: true } },

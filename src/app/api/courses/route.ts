@@ -38,8 +38,13 @@ export async function GET(req: NextRequest) {
         department: true,
         faculty: { include: { user: true } },
         _count: {
-          select: { enrollments: true, attendanceSessions: true, assessments: true },
+        select: { enrollments: true, attendanceSessions: true, assessments: true },
         },
+        enrollments: {
+        select: {
+        studentId: true,
+      },
+      },
       },
     });
 
