@@ -58,30 +58,24 @@ export async function POST(req: NextRequest) {
 
     const { courseId, facultyId, date, slot, topic, records } = result.data;
 
-    const session = await prisma.$transaction(async (tx) => {
-      const newSession = await tx.attendanceSession.create({
+    const session = await prisma.attendanceSession.create({
         data: {
-          courseId,
-          facultyId,
-          date: new Date(date),
-          slot,
-          topic,
-        },
-      });
+        courseId,
+        facultyId,
+        date: new Date(date),
+        slot,
+        topic,
+      },
+  });
 
-      for (const record of records) {
-        await tx.attendanceRecord.create({
-          data: {
-            sessionId: newSession.id,
-            studentId: record.studentId,
-            status: record.status,
-            remarks: record.remarks,
-          },
-        });
-      }
-
-      return newSession;
-    });
+    await prisma.attendanceRecord.createMany({
+    data: records.map((record) => ({
+      sessionId: session.id,
+      studentId: record.studentId,
+      status: record.status,
+      remarks: record.remarks,
+    })),
+  });
 
     // Background threshold check: If any student attendance falls below 75%, create an alert notification
     const threshold = parseInt(process.env.ATTENDANCE_WARNING_THRESHOLD || "75", 10);
