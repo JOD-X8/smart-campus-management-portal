@@ -18,30 +18,27 @@ export async function POST(req: NextRequest) {
 
     const { assessmentId, grades } = result.data;
 
-    await prisma.$transaction(async (tx) => {
-      for (const g of grades) {
-        await tx.grade.upsert({
-          where: {
-            assessmentId_studentId: {
-              assessmentId,
-              studentId: g.studentId,
-            },
-          },
-          update: {
-            marksObtained: g.marksObtained,
-            feedback: g.feedback,
-            gradedAt: new Date(),
-          },
-          create: {
+    for (const g of grades) {
+      await prisma.grade.upsert({
+        where: {
+          assessmentId_studentId: {
             assessmentId,
-            studentId: g.studentId,
-            marksObtained: g.marksObtained,
-            feedback: g.feedback,
-          },
-        });
-      }
-    });
-
+        studentId: g.studentId,
+      },
+    },
+    update: {
+      marksObtained: g.marksObtained,
+      feedback: g.feedback,
+      gradedAt: new Date(),
+    },
+    create: {
+      assessmentId,
+      studentId: g.studentId,
+      marksObtained: g.marksObtained,
+      feedback: g.feedback,
+    },
+  });
+}
     return apiSuccess(null, `Recorded grades for ${grades.length} students successfully`);
   } catch (error) {
     console.error("Submit grades error:", error);
