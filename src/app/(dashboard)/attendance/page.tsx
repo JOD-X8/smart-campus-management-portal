@@ -43,6 +43,14 @@ function AttendanceContent() {
   const courses = coursesData?.data || [];
   const [selectedCourseId, setSelectedCourseId] = useState(initialCourseId || "");
 
+  const { data: attendanceSessionsData, isLoading: isAttendanceHistoryLoading } =
+  useGetAttendanceSessionsQuery(
+    selectedCourseId ? { courseId: selectedCourseId } : undefined,
+    { skip: isStudent || !selectedCourseId }
+  );
+
+  const attendanceSessions = attendanceSessionsData?.data || [];
+
   useEffect(() => {
     if (!selectedCourseId && courses.length > 0) {
       setSelectedCourseId(courses[0].id);
@@ -390,6 +398,119 @@ function AttendanceContent() {
             </Button>
           </div>
         </form>
+      </Card>
+
+      {/* Attendance History */}
+      <Card className="overflow-hidden p-0">
+        <CardHeader className="p-5 border-b border-slate-100 dark:border-slate-800">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CalendarCheck className="h-5 w-5 text-indigo-600" />
+            Attendance History
+          </CardTitle>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            View previously recorded attendance sessions for the selected course.
+          </p>
+        </CardHeader>
+
+        {isAttendanceHistoryLoading ? (
+          <div className="p-5">
+            <TableSkeleton rows={5} columns={7} />
+          </div>
+        ) : attendanceSessions.length === 0 ? (
+          <EmptyState
+            icon={<CalendarCheck className="h-8 w-8" />}
+            title="No attendance records"
+            description="No attendance sessions have been recorded for this course yet."
+          />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Time Slot</TableHead>
+                <TableHead>Topic</TableHead>
+                <TableHead>Faculty</TableHead>
+                <TableHead>Present</TableHead>
+                <TableHead>Absent</TableHead>
+                <TableHead>Students</TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {attendanceSessions.map((session: any) => {
+                const records = session.records || [];
+
+                const present = records.filter(
+                  (r: any) => r.status === "PRESENT"
+                ).length;
+
+                const absent = records.filter(
+                  (r: any) => r.status === "ABSENT"
+                ).length;
+
+                const late = records.filter(
+                  (r: any) => r.status === "LATE"
+                ).length;
+
+                const excused = records.filter(
+                  (r: any) => r.status === "EXCUSED"
+                ).length;
+
+                return (
+                  <TableRow key={session.id}>
+                    <TableCell className="font-semibold text-xs">
+                      {new Date(session.date).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </TableCell>
+
+                    <TableCell className="text-xs">
+                      {session.slot}
+                    </TableCell>
+
+                    <TableCell className="text-xs">
+                      {session.topic || "Regular Lecture"}
+                    </TableCell>
+
+                    <TableCell className="text-xs">
+                      {session.faculty?.user
+                        ? `${session.faculty.user.firstName} ${session.faculty.user.lastName}`
+                        : "—"}
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge variant="success" size="sm">
+                        {present}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge variant="danger" size="sm">
+                        {absent}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell className="text-xs">
+                      <div className="flex items-center gap-2">
+                        <span>{records.length}</span>
+
+                        {(late > 0 || excused > 0) && (
+                          <span className="text-[10px] text-slate-400">
+                            {late > 0 && `${late} late`}
+                            {late > 0 && excused > 0 && " · "}
+                            {excused > 0 && `${excused} excused`}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </Card>
     </div>
   );
